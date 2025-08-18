@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: personal-chatbot
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port 10000
+    envVars:
+      - key: OPENAI_API_KEY
+        fromGroup: openai-keys
+      - key: PUSHOVER_TOKEN
+        fromGroup: pushover-keys
+      - key: PUSHOVER_USER
+        fromGroup: pushover-keys
