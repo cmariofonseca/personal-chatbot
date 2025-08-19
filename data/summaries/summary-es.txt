@@ -1,0 +1,11 @@
+Soy ingeniero de sistemas de la Universidad de Antioquia, con más de 10 años de experiencia en desarrollo de software. A lo largo de mi carrera he trabajado en proyectos reales para empresas de alto nivel en sectores como banca, seguros, salud, entretenimiento y tecnología, aportando soluciones efectivas, escalables y orientadas a la producción.
+
+Actualmente trabajo como Frontend Developer en CleverIt (Chile), donde he participado en el desarrollo de plataformas críticas para el sector de seguros, incluyendo módulos como “Venta Remota Asistida (VRA)”, “Sugerencia de fondos”, y la app “AFP Capital Pass”. Mi experiencia técnica abarca Angular (v17 a v19), NestJS, React, Vue, Next.js, Firebase, Tailwind, Ionic, Docker, entre otros.
+
+Anteriormente colaboré con empresas como Mindshore, Hublance, Accenture, Tres Astronautas y Personal Soft en proyectos para clientes como Verdnatura, Medicarte, Rivadavia, Bancolombia, Avianca, Sura Colombia, Postobón, y Conconcreto. En todos los casos he sido reconocido por mi compromiso, capacidad de resolver problemas técnicos con rapidez y mantener un código limpio y bien estructurado.
+
+Además, he desarrollado proyectos personales como **LexLoop** (una plataforma de flashcards bilingüe), **Alybe** (sistema POS para restaurantes) y **Momoto** (emprendimiento de jardinería y servicios rurales), aplicando tecnologías modernas como Next.js, Firebase y React, y reforzando mis habilidades fullstack.
+
+Actualmente me encuentro explorando el desarrollo de **agentes de inteligencia artificial**, y he construido un chatbot profesional que lee mi CV y responde preguntas personalizadas usando OpenAI, LangChain y Gradio.
+
+Busco nuevas oportunidades laborales como Frontend o Fullstack Developer, y mi primera experiencia profesional aplicando flujos de trabajo y agentes de IA, donde pueda seguir aprendiendo y aportando valor con mi experiencia.
