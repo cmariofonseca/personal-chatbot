@@ -4,6 +4,7 @@ from openai import OpenAI
 from pathlib import Path
 from pypdf import PdfReader
 from typing import List, Dict
+import httpx
 import json
 
 class Me:
@@ -14,6 +15,7 @@ class Me:
         summary_path = base_dir / "data" / "summaries" / "summary-es.txt"
         
         self.openai = OpenAI(api_key=settings.OPENAI_API_KEY)
+        
         self.name = "Carlos Fonseca"
         self.cv = self._load_cv(cv_path)
         self.summary = self._load_summary(summary_path)
