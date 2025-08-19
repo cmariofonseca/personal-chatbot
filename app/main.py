@@ -1,12 +1,21 @@
 from .api.endpoints import router as api_router
 from .config.settings import settings
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(
     title="personal-chatbot",
     description="API para el chatbot personalizado de Carlos Fonseca",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "https://carlosfonseca.dev"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(api_router, prefix="/api")
