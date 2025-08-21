@@ -11,14 +11,21 @@ class Me:
     # Inicializa el agente cargando configuración, CV y resumen
     def __init__(self):
         base_dir = Path(__file__).resolve().parent.parent.parent
+        projects_path = base_dir / "data" / "projects" / "projects.json"
         cv_path = base_dir / "data" / "cvs" / "cv-carlos-fonseca-2025-es.pdf"
         summary_path = base_dir / "data" / "summaries" / "summary-es.txt"
         
         self.openai = OpenAI(api_key=settings.OPENAI_API_KEY)
         
         self.name = "Carlos Fonseca"
+        self.projects = self._load_projects(projects_path)
         self.cv = self._load_cv(cv_path)
         self.summary = self._load_summary(summary_path)
+
+    # Carga y convierte el contenido JSON de un archivo en un objeto de Python.
+    def _load_projects(self, path: Path) -> List[Dict]:
+        with open(path, "r", encoding="utf-8") as file:
+            return json.load(file)
 
     # Carga y extrae texto del CV en formato PDF
     def _load_cv(self, path: Path) -> str:
@@ -72,42 +79,44 @@ class Me:
 
     # Genera el prompt del sistema con instrucciones para el AI
     def system_prompt(self) -> str:
-        system_prompt = f"""Actúa como {self.name}. Responde preguntas en el sitio web de {self.name}, en particular preguntas relacionadas con la trayectoria profesional, los antecedentes, las habilidades y la experiencia de {self.name}.
-            Tu responsabilidad es representar a {self.name} en las interacciones del sitio web con la mayor fidelidad posible.
-            Se te proporciona un resumen de la trayectoria profesional y el curriculum vitae de {self.name} que puedes usar para responder preguntas.
-            Muestra un tono profesional y atractivo, como si hablaras con un cliente potencial o un futuro empleador que haya visitado el sitio web.
-            Si no sabes la respuesta a alguna pregunta, usa la herramienta 'record_unknown_question' para registrar la pregunta que no pudiste responder, incluso si se trata de algo trivial o no relacionado con tu trayectoria profesional.
-            Si el usuario participa en una conversación, intenta que se ponga en contacto por correo electrónico; pídele su correo electrónico, su nombre y regístralo con la herramienta 'record_user_details'."""
-        
-        system_prompt += f"\n\n## Resumen:\n{self.summary}\n\n## Perfil de LinkedIn:\n{self.cv}\n\n"
-        system_prompt += f"En este contexto, por favor chatea con el usuario, manteniéndote siempre en el personaje de {self.name}."
-        return system_prompt
+        projects_str = "\n".join(
+            f"- {p['projectName']} ({p['date']}) – {p['description']}" for p in self.projects
+        )
+
+        return (
+            f"Eres Carlos Fonseca, ingeniero de sistemas con más de 10 años de experiencia en desarrollo de software. "
+            f"Tu tarea es responder de forma clara, breve y profesional a preguntas sobre tu experiencia laboral, habilidades, herramientas y proyectos. "
+            f"Habla con el usuario como si fuera un posible cliente o reclutador. "
+            f"Si no sabes algo, registra la pregunta con 'record_unknown_question'. "
+            f"Si el usuario muestra interés, invítalo a dejar su correo y registra con 'record_user_details'."
+            f"\n\nResumen profesional:\n{self.summary}"
+            f"\n\nProyectos destacados:\n{projects_str}"
+            f"\n\nCV (extraído de PDF):\n{self.cv}"
+        )
 
     # Procesa mensajes del chat y maneja la conversación con OpenAI
     def chat(self, message: str, history: List[Dict] = None) -> str:
         history = history or []
-        messages = [{"role": "system", "content": self.system_prompt()}] 
+        messages = [{"role": "system", "content": self.system_prompt()}]
         messages.extend(history)
         messages.append({"role": "user", "content": message})
         
-        done = False
-        while not done:
+        while True:
             response = self.openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
-                tools=self._get_tools()
+                tools=self._get_tools(),
+                max_tokens=400,
+                temperature=0.5
             )
-            
-            if response.choices[0].finish_reason == "tool_calls":
-                message = response.choices[0].message
-                tool_calls = message.tool_calls
-                results = self.handle_tool_call(tool_calls)
-                messages.append(message)
-                messages.extend(results)
+
+            finish_reason = response.choices[0].finish_reason
+            if finish_reason == "tool_calls":
+                tool_calls = response.choices[0].message.tool_calls
+                messages.append(response.choices[0].message)
+                messages.extend(self.handle_tool_call(tool_calls))
             else:
-                done = True
-                
-        return response.choices[0].message.content
+                return response.choices[0].message.content
 
     # Devuelve una lista de herramientas que el agente puede usar.
     def _get_tools(self) -> List[Dict]:
