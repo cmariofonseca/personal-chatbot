@@ -8,8 +8,8 @@ import httpx
 import json
 
 class Me:
+    # Inicializa el agente cargando configuración, CV y resumen
     def __init__(self):
-        # Obtener ruta base de manera más confiable
         base_dir = Path(__file__).resolve().parent.parent.parent
         cv_path = base_dir / "data" / "cvs" / "cv-carlos-fonseca-2025-es.pdf"
         summary_path = base_dir / "data" / "summaries" / "summary-es.txt"
@@ -20,24 +20,26 @@ class Me:
         self.cv = self._load_cv(cv_path)
         self.summary = self._load_summary(summary_path)
 
-    def _load_cv(self, path: Path) -> str:  # Cambiado a Path en el type hint
+    # Carga y extrae texto del CV en formato PDF
+    def _load_cv(self, path: Path) -> str:
         if not path.exists():
             raise FileNotFoundError(f"Archivo CV no encontrado en: {path}")
         
         cv_text = []
         reader = PdfReader(path)
         for page in reader.pages:
-            if text := page.extract_text():  # Usando walrus operator
+            if text := page.extract_text():
                 cv_text.append(text)
-        return "\n".join(cv_text)  # Más eficiente que concatenar strings
+        return "\n".join(cv_text)
 
+    # Lee y valida el contenido del archivo de resumen
     def _load_summary(self, path: Path) -> str:
         content = path.read_text(encoding="utf-8")
         if not content.strip():
             raise ValueError("El archivo summary está vacío")
         return content
 
-
+    # Maneja las llamadas a herramientas/funciones de OpenAI
     def handle_tool_call(self, tool_calls: List) -> List[Dict]:
         results = []
         for tool_call in tool_calls:
@@ -58,14 +60,17 @@ class Me:
             })
         return results
 
+    # Registra detalles de usuarios interesados y envía notificación
     def _record_user_details(self, email: str, name: str = "Nombre no indicado", notes: str = "no proporcionadas") -> Dict:
         push_notification(f"Registrando {name} con email {email} y notas {notes}")
         return {"recorded": "ok"}
 
+    # Registra preguntas no respondidas y envía notificación
     def _record_unknown_question(self, question: str) -> Dict:
         push_notification(f"Registrando pregunta no respondida: {question}")
         return {"recorded": "ok"}
 
+    # Genera el prompt del sistema con instrucciones para el AI
     def system_prompt(self) -> str:
         system_prompt = f"""Actúa como {self.name}. Responde preguntas en el sitio web de {self.name}, en particular preguntas relacionadas con la trayectoria profesional, los antecedentes, las habilidades y la experiencia de {self.name}.
             Tu responsabilidad es representar a {self.name} en las interacciones del sitio web con la mayor fidelidad posible.
@@ -78,6 +83,7 @@ class Me:
         system_prompt += f"En este contexto, por favor chatea con el usuario, manteniéndote siempre en el personaje de {self.name}."
         return system_prompt
 
+    # Procesa mensajes del chat y maneja la conversación con OpenAI
     def chat(self, message: str, history: List[Dict] = None) -> str:
         history = history or []
         messages = [{"role": "system", "content": self.system_prompt()}] 
@@ -103,6 +109,7 @@ class Me:
                 
         return response.choices[0].message.content
 
+    # Devuelve una lista de herramientas que el agente puede usar.
     def _get_tools(self) -> List[Dict]:
         return [
             {
