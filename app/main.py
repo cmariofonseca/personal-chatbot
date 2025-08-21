@@ -1,12 +1,12 @@
-from .api.endpoints import router as api_router
-from .config.settings import settings
+from app.api.endpoints import router as api_router
+from app.config.settings import settings
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 app = FastAPI(
-    title="personal-chatbot",
     description="API para el chatbot personalizado de Carlos Fonseca",
+    title="personal-chatbot",
     version="1.0.0"
 )
 

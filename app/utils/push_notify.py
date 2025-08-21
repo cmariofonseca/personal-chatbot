@@ -1,7 +1,8 @@
+from app.config.settings import settings
 import os
 import requests
-from ..config.settings import settings
 
+# Envía una notificación push con el texto proporcionado mediante Pushover.
 def push_notification(text: str) -> None:
     requests.post(
         "https://api.pushover.net/1/messages.json",
