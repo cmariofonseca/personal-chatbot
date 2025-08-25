@@ -2,7 +2,7 @@ from app.core.agent import Me
 
 def test_chat():
     me = Me()
-    response = me.chat("Hola, cuéntame sobre tu experiencia")
+    response = me.chat("cuanto tiempo de experiencia tienes con Python")
     print("Respuesta del chatbot:", response)
 
 if __name__ == "__main__":
