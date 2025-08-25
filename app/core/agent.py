@@ -11,12 +11,18 @@ class Me:
     # Inicializa el agente cargando configuración, CV y resumen
     def __init__(self):
         base_dir = Path(__file__).resolve().parent.parent.parent
+
+        # Definir rutas de datos
         projects_path = base_dir / "data" / "projects" / "projects.json"
         cv_path = base_dir / "data" / "cvs" / "cv-carlos-fonseca-2025-es.pdf"
         summary_path = base_dir / "data" / "summaries" / "summary-es.txt"
         
-        self.openai = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.client = OpenAI(
+            api_key=settings.DEEPSEEK_API_KEY,  
+            base_url="https://api.deepseek.com"
+        )
         
+        # Datos del perfil
         self.name = "Carlos Fonseca"
         self.projects = self._load_projects(projects_path)
         self.cv = self._load_cv(cv_path)
@@ -97,26 +103,31 @@ class Me:
     # Procesa mensajes del chat y maneja la conversación con OpenAI
     def chat(self, message: str, history: List[Dict] = None) -> str:
         history = history or []
+
+        # Construcción de mensajes base
         messages = [{"role": "system", "content": self.system_prompt()}]
         messages.extend(history)
         messages.append({"role": "user", "content": message})
-        
+
         while True:
-            response = self.openai.chat.completions.create(
-                model="gpt-4o-mini",
+            response = self.client.chat.completions.create(
+                model="deepseek-chat",
                 messages=messages,
                 tools=self._get_tools(),
                 max_tokens=400,
-                temperature=0.5
+                temperature=0.5,
             )
 
-            finish_reason = response.choices[0].finish_reason
+            choice = response.choices[0]
+            finish_reason = choice.finish_reason
+
             if finish_reason == "tool_calls":
-                tool_calls = response.choices[0].message.tool_calls
-                messages.append(response.choices[0].message)
+                tool_calls = choice.message.tool_calls
+                messages.append(choice.message)
                 messages.extend(self.handle_tool_call(tool_calls))
             else:
-                return response.choices[0].message.content
+                return choice.message.content
+
 
     # Devuelve una lista de herramientas que el agente puede usar.
     def _get_tools(self) -> List[Dict]:
