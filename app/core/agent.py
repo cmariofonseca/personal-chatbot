@@ -2,9 +2,7 @@ from app.config.settings import settings
 from app.utils.push_notify import push_notification
 from openai import OpenAI
 from pathlib import Path
-from pypdf import PdfReader
 from typing import List, Dict
-import httpx
 import json
 
 class Me:
@@ -13,8 +11,6 @@ class Me:
         base_dir = Path(__file__).resolve().parent.parent.parent
 
         # Definir rutas de datos
-        projects_path = base_dir / "data" / "projects" / "projects.json"
-        cv_path = base_dir / "data" / "cvs" / "cv-carlos-fonseca-2025-es.pdf"
         summary_path = base_dir / "data" / "summaries" / "summary-es.txt"
         
         self.client = OpenAI(
@@ -24,26 +20,7 @@ class Me:
         
         # Datos del perfil
         self.name = "Carlos Fonseca"
-        self.projects = self._load_projects(projects_path)
-        self.cv = self._load_cv(cv_path)
         self.summary = self._load_summary(summary_path)
-
-    # Carga y convierte el contenido JSON de un archivo en un objeto de Python.
-    def _load_projects(self, path: Path) -> List[Dict]:
-        with open(path, "r", encoding="utf-8") as file:
-            return json.load(file)
-
-    # Carga y extrae texto del CV en formato PDF
-    def _load_cv(self, path: Path) -> str:
-        if not path.exists():
-            raise FileNotFoundError(f"Archivo CV no encontrado en: {path}")
-        
-        cv_text = []
-        reader = PdfReader(path)
-        for page in reader.pages:
-            if text := page.extract_text():
-                cv_text.append(text)
-        return "\n".join(cv_text)
 
     # Lee y valida el contenido del archivo de resumen
     def _load_summary(self, path: Path) -> str:
@@ -85,19 +62,15 @@ class Me:
 
     # Genera el prompt del sistema con instrucciones para el AI
     def system_prompt(self) -> str:
-        projects_str = "\n".join(
-            f"- {p['projectName']} ({p['date']}) – {p['description']}" for p in self.projects
-        )
+        print(self.summary)
 
         return (
             f"Eres Carlos Fonseca, ingeniero de sistemas con más de 10 años de experiencia en desarrollo de software. "
             f"Tu tarea es responder de forma clara, breve y profesional a preguntas sobre tu experiencia laboral, habilidades, herramientas y proyectos. "
-            f"Habla con el usuario como si fuera un posible cliente o reclutador. "
+            f"Habla con el usuario con respuestas cortas como si fuera un posible cliente o reclutador. "
             f"Si no sabes algo, registra la pregunta con 'record_unknown_question'. "
             f"Si el usuario muestra interés, invítalo a dejar su correo y registra con 'record_user_details'."
             f"\n\nResumen profesional:\n{self.summary}"
-            f"\n\nProyectos destacados:\n{projects_str}"
-            f"\n\nCV (extraído de PDF):\n{self.cv}"
         )
 
     # Procesa mensajes del chat y maneja la conversación con OpenAI
