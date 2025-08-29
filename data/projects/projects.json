@@ -2,7 +2,7 @@
   {
     "client": "Sura Chile",
     "date": "2025",
-    "description": "Plataforma que permite a los ejecutivos iniciar en tiempo real el traslado de fondos, manteniendo comunicación directa con el cliente. Durante el proceso, y previa validación de identidad, el ejecutivo completa los formularios con la información proporcionada por el cliente: selección de productos a trasladar, actualización de datos personales y actualización de datos de empleadores, hasta finalizar la solicitud.",
+    "description": "Plataforma que permite a los ejecutivos gestionar en tiempo real el traslado de fondos, manteniendo comunicación directa con el cliente. Durante el proceso, y previa validación de identidad, el ejecutivo completa los formularios con la información entregada por el cliente, selecciona los productos a trasladar y actualiza tanto los datos personales como los datos de empleadores, hasta finalizar la solicitud.",
     "developmentCompany": "CleverIt | Chile",
     "developmentCompanyLinkedIn": "https://www.linkedin.com/company/cleverit-group",
     "developmentCompanyWebsite": "https://www.cleveritgroup.com",
