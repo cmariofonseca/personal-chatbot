@@ -36,15 +36,23 @@ async def chat_endpoint(request: ChatRequest):
 async def record_user_details_endpoint(request: dict):
     logger.info("record_user_details raw payload: %s", request)
     try:
-        # Manejar caso de Vapi con "arguments" como string JSON
-        if isinstance(request, dict) and "arguments" in request:
+        if isinstance(request, dict) and "toolCalls" in request:
+            tool_call = request["toolCalls"][0]
+            arguments_str = tool_call["function"]["arguments"]
+            parsed_args = json.loads(arguments_str)
+        elif isinstance(request, dict) and "arguments" in request:
             try:
                 parsed_args = json.loads(request["arguments"])
-            except Exception:
-                parsed_args = {}
+            except (TypeError, json.JSONDecodeError):
+                parsed_args = request["arguments"]
         else:
             parsed_args = request
 
+        logger.info("Parsed arguments: %s", parsed_args)
+
+        if "email" not in parsed_args:
+            raise HTTPException(status_code=400, detail="Email field is required")
+        
         request_model = UserDetailsRequest(**parsed_args)
 
         result = agent._record_user_details(
@@ -65,15 +73,23 @@ async def record_user_details_endpoint(request: dict):
 async def record_unknown_question_endpoint(request: dict):
     logger.info("record_unknown_question raw payload: %s", request)
     try:
-        # Manejar caso de Vapi con "arguments" como string JSON
-        if isinstance(request, dict) and "arguments" in request:
+        if isinstance(request, dict) and "toolCalls" in request:
+            tool_call = request["toolCalls"][0]
+            arguments_str = tool_call["function"]["arguments"]
+            parsed_args = json.loads(arguments_str)
+        elif isinstance(request, dict) and "arguments" in request:
             try:
                 parsed_args = json.loads(request["arguments"])
-            except Exception:
-                parsed_args = {}
+            except (TypeError, json.JSONDecodeError):
+                parsed_args = request["arguments"]
         else:
             parsed_args = request
 
+        logger.info("Parsed arguments: %s", parsed_args)
+
+        if "question" not in parsed_args:
+            raise HTTPException(status_code=400, detail="Question field is required")
+        
         request_model = UnknownQuestionRequest(**parsed_args)
 
         result = agent._record_unknown_question(
