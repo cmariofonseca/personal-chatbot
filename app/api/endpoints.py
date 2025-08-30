@@ -3,7 +3,9 @@ from app.core.models import ChatRequest, ChatResponse
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
+import logging
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 agent = Me()
 class UserDetailsRequest(BaseModel):
@@ -30,14 +32,18 @@ async def chat_endpoint(request: ChatRequest):
 
 @router.post("/record_user_details")
 async def record_user_details_endpoint(request: UserDetailsRequest):
+    logger.info("record_user_details payload: %s", request.model_dump())
+    
     try:
         result = agent._record_user_details(
             email=request.email,
             name=request.name,
             notes=request.notes
         )
+        logger.info("record_user_details result: %s", result)
         return {"status": "ok", "data": result}
     except Exception as e:
+        logger.exception("Error en record_user_details")
         raise HTTPException(
             status_code=500,
             detail=f"Error registrando usuario: {str(e)}"
@@ -45,12 +51,16 @@ async def record_user_details_endpoint(request: UserDetailsRequest):
 
 @router.post("/record_unknown_question")
 async def record_unknown_question_endpoint(request: UnknownQuestionRequest):
+    logger.info("record_unknown_question payload: %s", request.model_dump())
+    
     try:
         result = agent._record_unknown_question(
             question=request.question
         )
+        logger.info("record_unknown_question result: %s", result)
         return {"status": "ok", "data": result}
     except Exception as e:
+        logger.exception("Error en record_unknown_question")
         raise HTTPException(
             status_code=500,
             detail=f"Error registrando pregunta: {str(e)}"
