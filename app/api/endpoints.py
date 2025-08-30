@@ -1,6 +1,6 @@
 from app.core.agent import Me
 from app.core.models import ChatRequest, ChatResponse
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 import logging
@@ -31,23 +31,20 @@ async def chat_endpoint(request: ChatRequest):
         )
 
 @router.post("/record_user_details")
-async def record_user_details_endpoint(request: UserDetailsRequest):
-    logger.info("record_user_details payload: %s", request.model_dump())
+async def record_user_details_endpoint(request: Request):
+    raw_body = await request.body()
+    logger.info("RAW BODY recibido: %s", raw_body.decode("utf-8"))
     
-    try:
-        result = agent._record_user_details(
-            email=request.email,
-            name=request.name,
-            notes=request.notes
-        )
-        logger.info("record_user_details result: %s", result)
-        return {"status": "ok", "data": result}
-    except Exception as e:
-        logger.exception("Error en record_user_details")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error registrando usuario: {str(e)}"
-        )
+    # Re-parse con Pydantic
+    parsed = UserDetailsRequest.model_validate_json(raw_body)
+    logger.info("Parsed BODY: %s", parsed.model_dump())
+
+    result = agent._record_user_details(
+        email=parsed.email,
+        name=parsed.name,
+        notes=parsed.notes
+    )
+    return {"status": "ok", "data": result}
 
 @router.post("/record_unknown_question")
 async def record_unknown_question_endpoint(request: UnknownQuestionRequest):
