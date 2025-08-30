@@ -3,6 +3,7 @@ from app.core.models import ChatRequest, ChatResponse
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
+import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -32,30 +33,56 @@ async def chat_endpoint(request: ChatRequest):
 
 @router.post("/record_user_details")
 async def record_user_details_endpoint(request: Request):
-    raw_body = await request.body()
-    logger.info("RAW BODY recibido: %s", raw_body.decode("utf-8"))
-    
-    # Re-parse con Pydantic
-    parsed = UserDetailsRequest.model_validate_json(raw_body)
-    logger.info("Parsed BODY: %s", parsed.model_dump())
+    try:
+        raw_body = await request.json()
+        logger.info("RAW BODY recibido: %s", raw_body)
 
-    result = agent._record_user_details(
-        email=parsed.email,
-        name=parsed.name,
-        notes=parsed.notes
-    )
-    return {"status": "ok", "data": result}
+        if "arguments" in raw_body and isinstance(raw_body["arguments"], str):
+            parsed_args = json.loads(raw_body["arguments"])
+        else:
+            parsed_args = raw_body
+
+        logger.info("Parsed arguments: %s", parsed_args)
+
+        request_model = UserDetailsRequest(**parsed_args)
+
+        result = agent._record_user_details(
+            email=request_model.email,
+            name=request_model.name,
+            notes=request_model.notes
+        )
+        logger.info("record_user_details result: %s", result)
+        return {"status": "ok", "data": result}
+
+    except Exception as e:
+        logger.exception("Error en record_user_details")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error registrando usuario: {str(e)}"
+        )
+
 
 @router.post("/record_unknown_question")
-async def record_unknown_question_endpoint(request: UnknownQuestionRequest):
-    logger.info("record_unknown_question payload: %s", request.model_dump())
-    
+async def record_unknown_question_endpoint(request: Request):
     try:
+        raw_body = await request.json()
+        logger.info("RAW BODY recibido: %s", raw_body)
+
+        if "arguments" in raw_body and isinstance(raw_body["arguments"], str):
+            parsed_args = json.loads(raw_body["arguments"])
+        else:
+            parsed_args = raw_body
+
+        logger.info("Parsed arguments: %s", parsed_args)
+
+        request_model = UnknownQuestionRequest(**parsed_args)
+
         result = agent._record_unknown_question(
-            question=request.question
+            question=request_model.question
         )
         logger.info("record_unknown_question result: %s", result)
         return {"status": "ok", "data": result}
+
     except Exception as e:
         logger.exception("Error en record_unknown_question")
         raise HTTPException(
