@@ -1,6 +1,6 @@
 from app.core.agent import Me
 from app.core.models import ChatRequest, ChatResponse
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import json
@@ -9,6 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 router = APIRouter()
 agent = Me()
+
 class UserDetailsRequest(BaseModel):
     email: str
     name: Optional[str] = "Nombre no indicado"
@@ -32,17 +33,17 @@ async def chat_endpoint(request: ChatRequest):
         )
 
 @router.post("/record_user_details")
-async def record_user_details_endpoint(request: Request):
+async def record_user_details_endpoint(request: dict):
+    logger.info("record_user_details raw payload: %s", request)
     try:
-        raw_body = await request.json()
-        logger.info("RAW BODY recibido: %s", raw_body)
-
-        if "arguments" in raw_body and isinstance(raw_body["arguments"], str):
-            parsed_args = json.loads(raw_body["arguments"])
+        # Manejar caso de Vapi con "arguments" como string JSON
+        if isinstance(request, dict) and "arguments" in request:
+            try:
+                parsed_args = json.loads(request["arguments"])
+            except Exception:
+                parsed_args = {}
         else:
-            parsed_args = raw_body
-
-        logger.info("Parsed arguments: %s", parsed_args)
+            parsed_args = request
 
         request_model = UserDetailsRequest(**parsed_args)
 
@@ -53,7 +54,6 @@ async def record_user_details_endpoint(request: Request):
         )
         logger.info("record_user_details result: %s", result)
         return {"status": "ok", "data": result}
-
     except Exception as e:
         logger.exception("Error en record_user_details")
         raise HTTPException(
@@ -61,19 +61,18 @@ async def record_user_details_endpoint(request: Request):
             detail=f"Error registrando usuario: {str(e)}"
         )
 
-
 @router.post("/record_unknown_question")
-async def record_unknown_question_endpoint(request: Request):
+async def record_unknown_question_endpoint(request: dict):
+    logger.info("record_unknown_question raw payload: %s", request)
     try:
-        raw_body = await request.json()
-        logger.info("RAW BODY recibido: %s", raw_body)
-
-        if "arguments" in raw_body and isinstance(raw_body["arguments"], str):
-            parsed_args = json.loads(raw_body["arguments"])
+        # Manejar caso de Vapi con "arguments" como string JSON
+        if isinstance(request, dict) and "arguments" in request:
+            try:
+                parsed_args = json.loads(request["arguments"])
+            except Exception:
+                parsed_args = {}
         else:
-            parsed_args = raw_body
-
-        logger.info("Parsed arguments: %s", parsed_args)
+            parsed_args = request
 
         request_model = UnknownQuestionRequest(**parsed_args)
 
@@ -82,7 +81,6 @@ async def record_unknown_question_endpoint(request: Request):
         )
         logger.info("record_unknown_question result: %s", result)
         return {"status": "ok", "data": result}
-
     except Exception as e:
         logger.exception("Error en record_unknown_question")
         raise HTTPException(
