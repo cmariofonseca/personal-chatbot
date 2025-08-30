@@ -34,72 +34,120 @@ async def chat_endpoint(request: ChatRequest):
 
 @router.post("/record_user_details")
 async def record_user_details_endpoint(request: dict):
-    logger.info("record_user_details raw payload: %s", request)
+    logger.info("record_user_details raw payload: %s", json.dumps(request, indent=2))
+    
     try:
-        if isinstance(request, dict) and "toolCalls" in request:
-            tool_call = request["toolCalls"][0]
-            arguments_str = tool_call["function"]["arguments"]
-            parsed_args = json.loads(arguments_str)
-        elif isinstance(request, dict) and "arguments" in request:
-            try:
-                parsed_args = json.loads(request["arguments"])
-            except (TypeError, json.JSONDecodeError):
-                parsed_args = request["arguments"]
-        else:
-            parsed_args = request
-
-        logger.info("Parsed arguments: %s", parsed_args)
-
-        if "email" not in parsed_args:
-            raise HTTPException(status_code=400, detail="Email field is required")
+        parsed_args = extract_arguments_from_request(request)
+        validate_required_field(parsed_args, "email")
         
         request_model = UserDetailsRequest(**parsed_args)
-
         result = agent._record_user_details(
             email=request_model.email,
             name=request_model.name,
             notes=request_model.notes
         )
         logger.info("record_user_details result: %s", result)
+        
         return {"status": "ok", "data": result}
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Error en record_user_details")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error registrando usuario: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Error registrando usuario: {str(e)}")
 
 @router.post("/record_unknown_question")
 async def record_unknown_question_endpoint(request: dict):
-    logger.info("record_unknown_question raw payload: %s", request)
+    logger.info("record_unknown_question raw payload: %s", json.dumps(request, indent=2))
+    
     try:
-        if isinstance(request, dict) and "toolCalls" in request:
-            tool_call = request["toolCalls"][0]
-            arguments_str = tool_call["function"]["arguments"]
-            parsed_args = json.loads(arguments_str)
-        elif isinstance(request, dict) and "arguments" in request:
-            try:
-                parsed_args = json.loads(request["arguments"])
-            except (TypeError, json.JSONDecodeError):
-                parsed_args = request["arguments"]
-        else:
-            parsed_args = request
-
-        logger.info("Parsed arguments: %s", parsed_args)
-
-        if "question" not in parsed_args:
-            raise HTTPException(status_code=400, detail="Question field is required")
+        parsed_args = extract_arguments_from_request(request)
+        validate_required_field(parsed_args, "question")
         
         request_model = UnknownQuestionRequest(**parsed_args)
-
-        result = agent._record_unknown_question(
-            question=request_model.question
-        )
+        result = agent._record_unknown_question(question=request_model.question)
         logger.info("record_unknown_question result: %s", result)
+        
         return {"status": "ok", "data": result}
+        
+    except HTTPException:
+        raise
     except Exception as e:
         logger.exception("Error en record_unknown_question")
+        raise HTTPException(status_code=500, detail=f"Error registrando pregunta: {str(e)}")
+
+def extract_arguments_from_request(request: dict) -> dict:
+    """Extrae arguments de diferentes estructuras de Vapi"""
+    if not isinstance(request, dict):
+        return {}
+    
+    # 1. Estructura con toolCalls
+    if "toolCalls" in request:
+        return extract_from_tool_calls(request["toolCalls"])
+    
+    # 2. Estructura con arguments directos
+    if "arguments" in request:
+        return extract_from_arguments(request["arguments"])
+    
+    # 3. Estructura con message
+    if "message" in request:
+        return extract_from_message(request["message"])
+    
+    # 4. Ya viene con los campos necesarios
+    if "question" in request:
+        return request
+    
+    return {}
+
+def extract_from_tool_calls(tool_calls: list) -> dict:
+    """Extrae arguments de toolCalls"""
+    if not tool_calls or not isinstance(tool_calls, list):
+        return {}
+    
+    tool_call = tool_calls[0]
+    if isinstance(tool_call, dict) and "function" in tool_call:
+        function_data = tool_call["function"]
+        if isinstance(function_data, dict) and "arguments" in function_data:
+            return parse_json_arguments(function_data["arguments"])
+    
+    return {}
+
+def extract_from_arguments(arguments_data) -> dict:
+    """Extrae arguments del campo arguments"""
+    if isinstance(arguments_data, str):
+        return parse_json_arguments(arguments_data)
+    elif isinstance(arguments_data, dict):
+        return arguments_data
+    return {}
+
+def extract_from_message(message_data) -> dict:
+    """Extrae arguments del campo message"""
+    if not isinstance(message_data, dict):
+        return {}
+    
+    if "content" in message_data:
+        content = message_data["content"]
+        if isinstance(content, str):
+            try:
+                return json.loads(content)
+            except json.JSONDecodeError:
+                return {"question": content}
+    
+    return message_data
+
+def parse_json_arguments(arguments_str: str) -> dict:
+    """Parse JSON arguments de forma segura"""
+    try:
+        return json.loads(arguments_str)
+    except (json.JSONDecodeError, TypeError):
+        return {}
+
+def validate_required_field(data: dict, field_name: str):
+    """Valida que el campo requerido esté presente"""
+    if not data or field_name not in data:
+        available_keys = list(data.keys()) if isinstance(data, dict) else []
+        logger.warning("Field %s required. Available keys: %s", field_name, available_keys)
         raise HTTPException(
-            status_code=500,
-            detail=f"Error registrando pregunta: {str(e)}"
+            status_code=400, 
+            detail=f"{field_name.capitalize()} field is required. Available keys: {available_keys}"
         )
