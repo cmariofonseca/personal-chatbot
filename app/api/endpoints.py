@@ -172,6 +172,7 @@ def validate_required_field(data: dict, field_name: str):
     """Valida que el campo requerido esté presente"""
     if not data or field_name not in data:
         available_keys = list(data.keys()) if isinstance(data, dict) else []
+        # log 1
         logger.warning("Field %s required. Available keys: %s", field_name, available_keys)
         
         # DETECTAMOS SI ES UN REQUEST DE VAPI
@@ -179,6 +180,7 @@ def validate_required_field(data: dict, field_name: str):
         if any(key in available_keys for key in vapi_keys):
             # ¡ES UN REQUEST DE VAPI! Extraemos los arguments
             extracted_args = extract_from_vapi_request(data)
+            # log 3
             logger.warning("Extracted arguments from Vapi request: %s", extracted_args)
             logger.warning("Extracted arguments from Vapi es de tipo: %s", type(extracted_args))
             
@@ -198,11 +200,13 @@ def extract_from_vapi_request(vapi_request: dict) -> dict:
     """Extrae arguments directamente del request completo de Vapi"""
     # Intentar extraer de toolCalls primero
     result = extract_from_tool_calls_field(vapi_request, "toolCalls")
+    logger.warning("Resultado desde toolCalls: %s", result)
     if result:
         return result
     
     # Intentar de toolCallList si toolCalls no funcionó
     result = extract_from_tool_calls_field(vapi_request, "toolCallList")
+    logger.warning("Resultado desde toolCallList: %s", result)
     if result:
         return result
     
@@ -234,8 +238,10 @@ def extract_from_single_tool_call(tool_call: dict) -> dict:
 
 def parse_arguments_string(arguments_str: str) -> dict:
     """Parse a JSON arguments string de forma segura"""
+    # log 2
+    logger.warning("Failed to parse arguments: %s", arguments_str)
+    logger.warning("Failed to parse arguments es de tipo: %s", type(arguments_str))
     try:
         return json.loads(arguments_str)
     except (json.JSONDecodeError, TypeError):
-        logger.warning("Failed to parse arguments: %s", arguments_str)
         return {}
