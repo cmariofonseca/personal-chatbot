@@ -98,55 +98,10 @@ def extract_arguments_from_request(request: dict) -> dict:
         if isinstance(value, (list, dict)) and value:
             logger.info("   %s content: %s", key, json.dumps(value, indent=2, default=str)[:200] + "...")
     
-    # 2. Buscar en toolCalls
-    if "toolCalls" in request:
-        logger.info("🔍 Found toolCalls: %s", request["toolCalls"])
-        result = extract_from_tool_calls(request["toolCalls"])
-        logger.info("📦 Extracted from toolCalls: %s", result)
-        return result
-    
-    # 3. Buscar en toolCallList  
-    if "toolCallList" in request:
-        logger.info("🔍 Found toolCallList: %s", request["toolCallList"])
-        result = extract_from_tool_calls(request["toolCallList"])
-        logger.info("📦 Extracted from toolCallList: %s", result)
-        return result
-    
-    # 4. Estructura con arguments directos
-    if "arguments" in request:
-        return extract_from_arguments(request["arguments"])
-    
     # 5. Estructura con message
     if "message" in request:
         return extract_from_message(request["message"])
     
-    # 6. Ya viene con los campos necesarios
-    if "question" in request:
-        return request
-    
-    return {}
-
-def extract_from_tool_calls(tool_calls: list) -> dict:
-    """Extrae arguments de toolCalls"""
-    logger.warning("Se llama la funcion: extract_from_tool_calls")
-    if not tool_calls or not isinstance(tool_calls, list):
-        return {}
-    
-    tool_call = tool_calls[0]
-    if isinstance(tool_call, dict) and "function" in tool_call:
-        function_data = tool_call["function"]
-        if isinstance(function_data, dict) and "arguments" in function_data:
-            return parse_json_arguments(function_data["arguments"])
-    
-    return {}
-
-def extract_from_arguments(arguments_data) -> dict:
-    """Extrae arguments del campo arguments"""
-    logger.warning("Se llama la funcion: extract_from_arguments")
-    if isinstance(arguments_data, str):
-        return parse_json_arguments(arguments_data)
-    elif isinstance(arguments_data, dict):
-        return arguments_data
     return {}
 
 def extract_from_message(message_data) -> dict:
@@ -164,14 +119,6 @@ def extract_from_message(message_data) -> dict:
                 return {"question": content}
     
     return message_data
-
-def parse_json_arguments(arguments_str: str) -> dict:
-    """Parse JSON arguments de forma segura"""
-    logger.warning("Se llama la funcion: parse_json_arguments")
-    try:
-        return json.loads(arguments_str)
-    except (json.JSONDecodeError, TypeError):
-        return {}
 
 def validate_required_field(data: dict, field_name: str):
     """Valida que el campo requerido esté presente"""
@@ -204,18 +151,13 @@ def validate_required_field(data: dict, field_name: str):
 
 def extract_from_vapi_request(vapi_request: dict) -> dict:
     """Extrae arguments directamente del request completo de Vapi"""
-    
-    tool_calls = vapi_request["toolCalls"]
-    if not isinstance(tool_calls, list) or not tool_calls:
-        return {}
-
-    function_data = tool_calls[0]["function"]
-    
-    arguments_str = function_data["arguments"]
-    # log 2
-    logger.warning("Failed to parse arguments: %s", arguments_str)
-    logger.warning("Failed to parse arguments es de tipo: %s", type(arguments_str))
     try:
-        return json.loads(arguments_str)
+        tool_calls = vapi_request["toolCalls"]
+        function_data = tool_calls[0]["function"]
+        arguments_str = function_data["arguments"]
+        # log 2
+        logger.warning("Failed to parse arguments: %s", arguments_str)
+        logger.warning("Failed to parse arguments es de tipo: %s", type(arguments_str))
+        return arguments_str
     except (json.JSONDecodeError, TypeError):
         return {}
