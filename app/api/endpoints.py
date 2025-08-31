@@ -224,13 +224,23 @@ def extract_from_single_tool_call(tool_call: dict) -> dict:
     if not isinstance(function_data, dict) or "arguments" not in function_data:
         return {}
     
-    arguments_str = function_data["arguments"]
-    return parse_arguments_string(arguments_str)
+    arguments_data = function_data["arguments"]
+    logger.info("Arguments data type: %s, value: %s", type(arguments_data), arguments_data)
+    
+    return parse_arguments_string(arguments_data)
 
-def parse_arguments_string(arguments_str: str) -> dict:
-    """Parse a JSON arguments string de forma segura"""
+def parse_arguments_string(arguments_data) -> dict:
+    """Parse arguments que pueden ser string JSON o ya un dict"""
     try:
-        return json.loads(arguments_str)
-    except (json.JSONDecodeError, TypeError):
-        logger.warning("Failed to parse arguments: %s", arguments_str)
+        if isinstance(arguments_data, str):
+            # Es un string JSON: '{"email": "test@example.com"}'
+            return json.loads(arguments_data)
+        elif isinstance(arguments_data, dict):
+            # Ya es un diccionario: {'email': 'test@example.com'}
+            return arguments_data
+        else:
+            logger.warning("Unknown arguments type: %s - %s", type(arguments_data), arguments_data)
+            return {}
+    except (json.JSONDecodeError, TypeError) as e:
+        logger.warning("Failed to parse arguments: %s - Error: %s", arguments_data, str(e))
         return {}
