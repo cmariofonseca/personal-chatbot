@@ -20,6 +20,7 @@ class UnknownQuestionRequest(BaseModel):
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
+    logger.warning("request received in chat_endpoint: %s", json.dumps(request, indent=2, default=str))
     try:
         response_text = agent.chat(
             message=request.message,
@@ -34,14 +35,14 @@ async def chat_endpoint(request: ChatRequest):
 
 @router.post("/record_user_details")
 async def record_user_details_endpoint(request: dict):
-    logger.info("🔥 FULL REQUEST RECEIVED: %s", json.dumps(request, indent=2, default=str))
+    logger.warning("request received in record_user_details_endpoint: %s", json.dumps(request, indent=2, default=str))
     
     try:
         parsed_args = extract_arguments_from_request(request)
-        logger.info("📦 PARSED ARGS: %s", json.dumps(parsed_args, indent=2))
+        logger.warning("📦 PARSED ARGS: %s", json.dumps(parsed_args, indent=2))
         result = validate_required_field(parsed_args, "email")
         logger.warning("logger warning de result en record_user_details_endpoint: %s", result)
-        logger.info("logger info de result en record_user_details_endpoint: %s", result)
+        logger.warning("logger info de result en record_user_details_endpoint: %s", result)
         
         request_model = UserDetailsRequest(**parsed_args)
         result = agent._record_user_details(
@@ -49,7 +50,7 @@ async def record_user_details_endpoint(request: dict):
             name=request_model.name,
             notes=request_model.notes
         )
-        logger.info("record_user_details result: %s", result)
+        logger.warning("record_user_details result: %s", result)
         
         return {"status": "ok", "data": result}
         
@@ -61,18 +62,18 @@ async def record_user_details_endpoint(request: dict):
 
 @router.post("/record_unknown_question")
 async def record_unknown_question_endpoint(request: dict):
-    logger.info("🔥 FULL REQUEST RECEIVED: %s", json.dumps(request, indent=2, default=str))
+    logger.warning("request received in record_unknown_question_endpoint: %s", json.dumps(request, indent=2, default=str))
     
     try:
         parsed_args = extract_arguments_from_request(request)
-        logger.info("📦 PARSED ARGS: %s", json.dumps(parsed_args, indent=2))
+        logger.warning("📦 PARSED ARGS: %s", json.dumps(parsed_args, indent=2))
         result = validate_required_field(parsed_args, "question")
         logger.warning("logger warning de result en record_unknown_question_endpoint: %s", result)
-        logger.info("logger info de result en record_unknown_question_endpoint: %s", result)
+        logger.warning("logger info de result en record_unknown_question_endpoint: %s", result)
         
         request_model = UnknownQuestionRequest(**parsed_args)
         result = agent._record_unknown_question(question=request_model.question)
-        logger.info("record_unknown_question result: %s", result)
+        logger.warning("record_unknown_question result: %s", result)
         
         return {"status": "ok", "data": result}
         
@@ -85,18 +86,18 @@ async def record_unknown_question_endpoint(request: dict):
 def extract_arguments_from_request(request: dict) -> dict:
     """Extrae arguments de diferentes estructuras de Vapi"""
     logger.warning("Se llama la funcion: extract_arguments_from_request")
-    logger.info("🔄 EXTRACTING FROM REQUEST STRUCTURE")
+    logger.warning("🔄 EXTRACTING FROM REQUEST STRUCTURE")
     
     if not isinstance(request, dict):
         logger.warning("❌ Request is not a dict: %s", type(request))
         return {}
     
     # 1. Mostrar TODAS las keys del request principal
-    logger.info("📋 TOP-LEVEL KEYS AND VALUES:")
+    logger.warning("📋 TOP-LEVEL KEYS AND VALUES:")
     for key, value in request.items():
-        logger.info("   %s: %s", key, type(value))
+        logger.warning("   %s: %s", key, type(value))
         if isinstance(value, (list, dict)) and value:
-            logger.info("   %s content: %s", key, json.dumps(value, indent=2, default=str)[:200] + "...")
+            logger.warning("   %s content: %s", key, json.dumps(value, indent=2, default=str)[:200] + "...")
     
     # 5. Estructura con message
     if "message" in request:
@@ -154,10 +155,15 @@ def extract_from_vapi_request(vapi_request: dict) -> dict:
     try:
         tool_calls = vapi_request["toolCalls"]
         function_data = tool_calls[0]["function"]
-        arguments_str = function_data["arguments"]
-        # log 2
-        logger.warning("Failed to parse arguments: %s", arguments_str)
-        logger.warning("Failed to parse arguments es de tipo: %s", type(arguments_str))
-        return arguments_str
-    except (json.JSONDecodeError, TypeError):
+        arguments_data = function_data["arguments"]
+        
+        if "email" in arguments_data and isinstance(arguments_data["email"], str):
+            email = arguments_data["email"]
+            email_clean = email.strip().lower().replace(" ", "")
+            arguments_data["email"] = email_clean
+            
+        return arguments_data
+        
+    except (KeyError, IndexError, TypeError) as e:
+        logger.warning("Error extracting from Vapi request: %s", str(e))
         return {}
