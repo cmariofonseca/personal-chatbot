@@ -51,18 +51,16 @@ async def record_user_details_endpoint(request: dict):
             
             email = arguments_data["email"]
             arguments_data["email"] = email.strip().lower().replace(" ", "")
-        
-        logger.warning("Arguments data extracted: %s", arguments_data)
 
         request_model = UserDetailsRequest(**arguments_data)
+        
+        email = request_model.email
+        name = request_model.name
+        notes = request_model.notes
+        logger.warning("email: %s, name: %s, notes: %s", email, name, notes)
 
-        result = agent._record_user_details(
-            email=request_model.email,
-            name=request_model.name,
-            notes=request_model.notes
-        )
-        logger.warning("record_user_details result: %s", result)
-        return {"status": "ok", "data": result}
+        agent._record_user_details(email, name, notes)
+        return {"status": "ok"}
 
     except Exception as e:
         logger.exception("Error en record_user_details")
@@ -83,16 +81,13 @@ async def record_unknown_question_endpoint(request: dict):
 
         first_tool_call = tool_calls[0]
         arguments_data = first_tool_call.get("function", {}).get("arguments", {})
-        
-        logger.warning("Arguments data extracted: %s", arguments_data)
 
         request_model = UnknownQuestionRequest(**arguments_data)
 
-        result = agent._record_unknown_question(
-            question=request_model.question
-        )
-        logger.warning("record_unknown_question result: %s", result)
-        return {"status": "ok", "data": result}
+        question = request_model.question
+        logger.warning("record_unknown_question result: %s", question)
+        agent._record_unknown_question(question)
+        return {"status": "ok"}
 
     except Exception as e:
         logger.exception("Error en record_unknown_question")
