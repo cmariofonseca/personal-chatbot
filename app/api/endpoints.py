@@ -33,13 +33,12 @@ async def chat_endpoint(request: ChatRequest):
         )
 
 @router.post("/record_user_details")
-async def record_user_details_endpoint(request):
+async def record_user_details_endpoint(request: dict):
     logger.info("🔥 FULL REQUEST RECEIVED: %s", json.dumps(request, indent=2, default=str))
     
     try:
         parsed_args = extract_arguments_from_request(request)
         logger.info("📦 PARSED ARGS: %s", json.dumps(parsed_args, indent=2))
-        logger.warning("Failed to parse arguments es de tipo: %s", type(parsed_args))
         result = validate_required_field(parsed_args, "email")
         logger.warning("logger warning de result en record_user_details_endpoint: %s", result)
         logger.info("logger info de result en record_user_details_endpoint: %s", result)
@@ -61,7 +60,7 @@ async def record_user_details_endpoint(request):
         raise HTTPException(status_code=500, detail=f"Error registrando usuario: {str(e)}")
 
 @router.post("/record_unknown_question")
-async def record_unknown_question_endpoint(request):
+async def record_unknown_question_endpoint(request: dict):
     logger.info("🔥 FULL REQUEST RECEIVED: %s", json.dumps(request, indent=2, default=str))
     
     try:
@@ -83,9 +82,9 @@ async def record_unknown_question_endpoint(request):
         logger.exception("Error en record_unknown_question")
         raise HTTPException(status_code=500, detail=f"Error registrando pregunta: {str(e)}")
 
-def extract_arguments_from_request(request):
-    logger.warning("Se llama la funcion: extract_arguments_from_request")
+def extract_arguments_from_request(request: dict) -> dict:
     """Extrae arguments de diferentes estructuras de Vapi"""
+    logger.warning("Se llama la funcion: extract_arguments_from_request")
     logger.info("🔄 EXTRACTING FROM REQUEST STRUCTURE")
     
     if not isinstance(request, dict):
@@ -127,7 +126,7 @@ def extract_arguments_from_request(request):
     
     return {}
 
-def extract_from_tool_calls(tool_calls: list):
+def extract_from_tool_calls(tool_calls: list) -> dict:
     """Extrae arguments de toolCalls"""
     logger.warning("Se llama la funcion: extract_from_tool_calls")
     if not tool_calls or not isinstance(tool_calls, list):
@@ -141,7 +140,7 @@ def extract_from_tool_calls(tool_calls: list):
     
     return {}
 
-def extract_from_arguments(arguments_data):
+def extract_from_arguments(arguments_data) -> dict:
     """Extrae arguments del campo arguments"""
     logger.warning("Se llama la funcion: extract_from_arguments")
     if isinstance(arguments_data, str):
@@ -150,7 +149,7 @@ def extract_from_arguments(arguments_data):
         return arguments_data
     return {}
 
-def extract_from_message(message_data):
+def extract_from_message(message_data) -> dict:
     """Extrae arguments del campo message"""
     logger.warning("Se llama la funcion: extract_from_message")
     if not isinstance(message_data, dict):
@@ -166,7 +165,7 @@ def extract_from_message(message_data):
     
     return message_data
 
-def parse_json_arguments(arguments_str: str):
+def parse_json_arguments(arguments_str: str) -> dict:
     """Parse JSON arguments de forma segura"""
     logger.warning("Se llama la funcion: parse_json_arguments")
     try:
@@ -174,8 +173,9 @@ def parse_json_arguments(arguments_str: str):
     except (json.JSONDecodeError, TypeError):
         return {}
 
-def validate_required_field(data, field_name: str):
+def validate_required_field(data: dict, field_name: str):
     """Valida que el campo requerido esté presente"""
+    logger.warning("Se llama la funcion: validate_required_field")
     if not data or field_name not in data:
         available_keys = list(data.keys()) if isinstance(data, dict) else []
         # log 1
@@ -202,23 +202,14 @@ def validate_required_field(data, field_name: str):
     # Si el campo está presente, devolver su valor
     return data[field_name]
 
-def extract_from_vapi_request(vapi_request):
+def extract_from_vapi_request(vapi_request: dict) -> dict:
     """Extrae arguments directamente del request completo de Vapi"""
-    # Intentar extraer de toolCalls primero
-    result = extract_from_tool_calls_field(vapi_request, "toolCalls")
-    logger.warning("Resultado desde toolCalls: %s", result)
-    if result:
-        return result
     
-    # Si no encontramos nada, devolver vacío
-    return {}
-
-def extract_from_tool_calls_field(vapi_request, field_name: str):
-    """Extrae arguments de un campo específico de tool calls"""
-    tool_calls = vapi_request[field_name]
-    function_data = tool_calls[0]["function"]
-    if not isinstance(function_data, dict) or "arguments" not in function_data:
+    tool_calls = vapi_request["toolCalls"]
+    if not isinstance(tool_calls, list) or not tool_calls:
         return {}
+
+    function_data = tool_calls[0]["function"]
     
     arguments_str = function_data["arguments"]
     # log 2
