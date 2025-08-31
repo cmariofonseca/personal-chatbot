@@ -39,7 +39,9 @@ async def record_user_details_endpoint(request: dict):
     try:
         parsed_args = extract_arguments_from_request(request)
         logger.info("📦 PARSED ARGS: %s", json.dumps(parsed_args, indent=2))
-        validate_required_field(parsed_args, "email")
+        result = validate_required_field(parsed_args, "email")
+        logger.warning("logger warning de result en record_user_details_endpoint: %s", result)
+        logger.info("logger info de result en record_user_details_endpoint: %s", result)
         
         request_model = UserDetailsRequest(**parsed_args)
         result = agent._record_user_details(
@@ -64,7 +66,9 @@ async def record_unknown_question_endpoint(request: dict):
     try:
         parsed_args = extract_arguments_from_request(request)
         logger.info("📦 PARSED ARGS: %s", json.dumps(parsed_args, indent=2))
-        validate_required_field(parsed_args, "question")
+        result = validate_required_field(parsed_args, "question")
+        logger.warning("logger warning de result en record_unknown_question_endpoint: %s", result)
+        logger.info("logger info de result en record_unknown_question_endpoint: %s", result)
         
         request_model = UnknownQuestionRequest(**parsed_args)
         result = agent._record_unknown_question(question=request_model.question)
@@ -176,6 +180,7 @@ def validate_required_field(data: dict, field_name: str):
             # ¡ES UN REQUEST DE VAPI! Extraemos los arguments
             extracted_args = extract_from_vapi_request(data)
             logger.warning("Extracted arguments from Vapi request: %s", extracted_args)
+            logger.warning("Extracted arguments from Vapi es de tipo: %s", type(extracted_args))
             
             if field_name in extracted_args:
                 # Devolvemos los arguments extraídos para que el caller los use
@@ -224,23 +229,13 @@ def extract_from_single_tool_call(tool_call: dict) -> dict:
     if not isinstance(function_data, dict) or "arguments" not in function_data:
         return {}
     
-    arguments_data = function_data["arguments"]
-    logger.info("Arguments data type: %s, value: %s", type(arguments_data), arguments_data)
-    
-    return parse_arguments_string(arguments_data)
+    arguments_str = function_data["arguments"]
+    return parse_arguments_string(arguments_str)
 
-def parse_arguments_string(arguments_data) -> dict:
-    """Parse arguments que pueden ser string JSON o ya un dict"""
+def parse_arguments_string(arguments_str: str) -> dict:
+    """Parse a JSON arguments string de forma segura"""
     try:
-        if isinstance(arguments_data, str):
-            # Es un string JSON: '{"email": "test@example.com"}'
-            return json.loads(arguments_data)
-        elif isinstance(arguments_data, dict):
-            # Ya es un diccionario: {'email': 'test@example.com'}
-            return arguments_data
-        else:
-            logger.warning("Unknown arguments type: %s - %s", type(arguments_data), arguments_data)
-            return {}
-    except (json.JSONDecodeError, TypeError) as e:
-        logger.warning("Failed to parse arguments: %s - Error: %s", arguments_data, str(e))
+        return json.loads(arguments_str)
+    except (json.JSONDecodeError, TypeError):
+        logger.warning("Failed to parse arguments: %s", arguments_str)
         return {}
