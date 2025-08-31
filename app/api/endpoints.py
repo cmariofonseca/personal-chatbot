@@ -1,6 +1,6 @@
 from app.core.agent import Me
 from app.core.models import ChatRequest, ChatResponse
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional
 import json
@@ -20,7 +20,6 @@ class UnknownQuestionRequest(BaseModel):
 
 @router.post("/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest):
-    logger.warning("request received in chat_endpoint: %s", json.dumps(request, indent=2, default=str))
     try:
         response_text = agent.chat(
             message=request.message,
@@ -34,76 +33,66 @@ async def chat_endpoint(request: ChatRequest):
         )
 
 @router.post("/record_user_details")
-async def record_user_details_endpoint(request: dict):
+async def record_user_details_endpoint(request: Request):
     logger.warning("request received in record_user_details_endpoint: %s", json.dumps(request, indent=2, default=str))
-    
+
     try:
-        parsed_args = extract_arguments_from_request(request)
-        logger.warning("📦 PARSED ARGS: %s", json.dumps(parsed_args, indent=2))
-        result = validate_required_field(parsed_args, "email")
-        logger.warning("logger warning de result en record_user_details_endpoint: %s", result)
-        logger.warning("logger info de result en record_user_details_endpoint: %s", result)
-        
+        raw_body = await request.json()
+        logger.info("RAW BODY recibido: %s", raw_body)
+
+        if "arguments" in raw_body and isinstance(raw_body["arguments"], str):
+            parsed_args = json.loads(raw_body["arguments"])
+        else:
+            parsed_args = raw_body
+
+        logger.info("Parsed arguments: %s", parsed_args)
+
         request_model = UserDetailsRequest(**parsed_args)
+
         result = agent._record_user_details(
             email=request_model.email,
             name=request_model.name,
             notes=request_model.notes
         )
-        logger.warning("record_user_details result: %s", result)
-        
+        logger.info("record_user_details result: %s", result)
         return {"status": "ok", "data": result}
-        
-    except HTTPException:
-        raise
+
     except Exception as e:
         logger.exception("Error en record_user_details")
-        raise HTTPException(status_code=500, detail=f"Error registrando usuario: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error registrando usuario: {str(e)}"
+        )
 
 @router.post("/record_unknown_question")
-async def record_unknown_question_endpoint(request: dict):
+async def record_unknown_question_endpoint(request: Request):
     logger.warning("request received in record_unknown_question_endpoint: %s", json.dumps(request, indent=2, default=str))
     
     try:
-        parsed_args = extract_arguments_from_request(request)
-        logger.warning("📦 PARSED ARGS: %s", json.dumps(parsed_args, indent=2))
-        result = validate_required_field(parsed_args, "question")
-        logger.warning("logger warning de result en record_unknown_question_endpoint: %s", result)
-        logger.warning("logger info de result en record_unknown_question_endpoint: %s", result)
-        
+        raw_body = await request.json()
+        logger.info("RAW BODY recibido: %s", raw_body)
+
+        if "arguments" in raw_body and isinstance(raw_body["arguments"], str):
+            parsed_args = json.loads(raw_body["arguments"])
+        else:
+            parsed_args = raw_body
+
+        logger.info("Parsed arguments: %s", parsed_args)
+
         request_model = UnknownQuestionRequest(**parsed_args)
-        result = agent._record_unknown_question(question=request_model.question)
-        logger.warning("record_unknown_question result: %s", result)
-        
+
+        result = agent._record_unknown_question(
+            question=request_model.question
+        )
+        logger.info("record_unknown_question result: %s", result)
         return {"status": "ok", "data": result}
-        
-    except HTTPException:
-        raise
+
     except Exception as e:
         logger.exception("Error en record_unknown_question")
-        raise HTTPException(status_code=500, detail=f"Error registrando pregunta: {str(e)}")
-
-def extract_arguments_from_request(request: dict) -> dict:
-    """Extrae arguments de diferentes estructuras de Vapi"""
-    logger.warning("Se llama la funcion: extract_arguments_from_request")
-    logger.warning("🔄 EXTRACTING FROM REQUEST STRUCTURE")
-    
-    if not isinstance(request, dict):
-        logger.warning("❌ Request is not a dict: %s", type(request))
-        return {}
-    
-    # 1. Mostrar TODAS las keys del request principal
-    logger.warning("📋 TOP-LEVEL KEYS AND VALUES:")
-    for key, value in request.items():
-        logger.warning("   %s: %s", key, type(value))
-        if isinstance(value, (list, dict)) and value:
-            logger.warning("   %s content: %s", key, json.dumps(value, indent=2, default=str)[:200] + "...")
-    
-    # 5. Estructura con message
-    if "message" in request:
-        return extract_from_message(request["message"])
-    
-    return {}
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error registrando pregunta: {str(e)}"
+        )
 
 def extract_from_message(message_data) -> dict:
     """Extrae arguments del campo message"""
