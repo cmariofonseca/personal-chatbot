@@ -31,30 +31,33 @@ async def chat_endpoint(request: ChatRequest):
             status_code=500,
             detail=f"Error en el chatbot: {str(e)}"
         )
-
+        
 @router.post("/record_user_details")
 async def record_user_details_endpoint(request: dict):
-    logger.warning("request received in record_user_details_endpoint: %s", json.dumps(request, indent=2, default=str))
+    # logger.warning("request received in record_user_details_endpoint: %s", json.dumps(request, indent=2, default=str))
 
     try:
-        raw_body = await request.json()
-        logger.info("RAW BODY recibido: %s", raw_body)
+        # Extraer directamente del structure de Vapi
+        tool_calls = request.get("message", {}).get("toolCalls", [])
+        
+        if not tool_calls:
+            raise HTTPException(status_code=400, detail="No toolCalls found in request")
+        
+        # Obtener los arguments del primer tool call
+        first_tool_call = tool_calls[0]
+        arguments_data = first_tool_call.get("function", {}).get("arguments", {})
+        
+        logger.warning("Arguments data extracted: %s", arguments_data)
 
-        if "arguments" in raw_body and isinstance(raw_body["arguments"], str):
-            parsed_args = json.loads(raw_body["arguments"])
-        else:
-            parsed_args = raw_body
-
-        logger.info("Parsed arguments: %s", parsed_args)
-
-        request_model = UserDetailsRequest(**parsed_args)
+        # Crear el modelo con los arguments extraídos
+        request_model = UserDetailsRequest(**arguments_data)
 
         result = agent._record_user_details(
             email=request_model.email,
             name=request_model.name,
             notes=request_model.notes
         )
-        logger.info("record_user_details result: %s", result)
+        logger.warning("record_user_details result: %s", result)
         return {"status": "ok", "data": result}
 
     except Exception as e:
@@ -63,28 +66,31 @@ async def record_user_details_endpoint(request: dict):
             status_code=500,
             detail=f"Error registrando usuario: {str(e)}"
         )
-
+        
 @router.post("/record_unknown_question")
 async def record_unknown_question_endpoint(request: dict):
-    logger.warning("request received in record_unknown_question_endpoint: %s", json.dumps(request, indent=2, default=str))
+    # logger.warning("request received in record_unknown_question_endpoint: %s", json.dumps(request, indent=2, default=str))
     
     try:
-        raw_body = await request.json()
-        logger.info("RAW BODY recibido: %s", raw_body)
+        # Extraer directamente del structure de Vapi
+        tool_calls = request.get("message", {}).get("toolCalls", [])
+        
+        if not tool_calls:
+            raise HTTPException(status_code=400, detail="No toolCalls found in request")
+        
+        # Obtener los arguments del primer tool call
+        first_tool_call = tool_calls[0]
+        arguments_data = first_tool_call.get("function", {}).get("arguments", {})
+        
+        logger.warning("Arguments data extracted: %s", arguments_data)
 
-        if "arguments" in raw_body and isinstance(raw_body["arguments"], str):
-            parsed_args = json.loads(raw_body["arguments"])
-        else:
-            parsed_args = raw_body
-
-        logger.info("Parsed arguments: %s", parsed_args)
-
-        request_model = UnknownQuestionRequest(**parsed_args)
+        # Crear el modelo con los arguments extraídos
+        request_model = UnknownQuestionRequest(**arguments_data)
 
         result = agent._record_unknown_question(
             question=request_model.question
         )
-        logger.info("record_unknown_question result: %s", result)
+        logger.warning("record_unknown_question result: %s", result)
         return {"status": "ok", "data": result}
 
     except Exception as e:
@@ -93,66 +99,3 @@ async def record_unknown_question_endpoint(request: dict):
             status_code=500,
             detail=f"Error registrando pregunta: {str(e)}"
         )
-
-def extract_from_message(message_data) -> dict:
-    """Extrae arguments del campo message"""
-    logger.warning("Se llama la funcion: extract_from_message")
-    if not isinstance(message_data, dict):
-        return {}
-    
-    if "content" in message_data:
-        content = message_data["content"]
-        if isinstance(content, str):
-            try:
-                return json.loads(content)
-            except json.JSONDecodeError:
-                return {"question": content}
-    
-    return message_data
-
-def validate_required_field(data: dict, field_name: str):
-    """Valida que el campo requerido esté presente"""
-    logger.warning("Se llama la funcion: validate_required_field")
-    if not data or field_name not in data:
-        available_keys = list(data.keys()) if isinstance(data, dict) else []
-        # log 1
-        logger.warning("Field %s required. Available keys: %s", field_name, available_keys)
-        
-        # DETECTAMOS SI ES UN REQUEST DE VAPI
-        vapi_keys = ['timestamp', 'type', 'toolCalls', 'toolCallList', 'toolWithToolCallList', 'artifact', 'call', 'assistant']
-        if any(key in available_keys for key in vapi_keys):
-            # ¡ES UN REQUEST DE VAPI! Extraemos los arguments
-            extracted_args = extract_from_vapi_request(data)
-            # log 3
-            logger.warning("Extracted arguments from Vapi request: %s", extracted_args)
-            logger.warning("Extracted arguments from Vapi es de tipo: %s", type(extracted_args))
-            
-            if field_name in extracted_args:
-                # Devolvemos los arguments extraídos para que el caller los use
-                return extracted_args[field_name]
-        
-        raise HTTPException(
-            status_code=400, 
-            detail=f"{field_name.capitalize()} field is required. Available keys: {available_keys}"
-        )
-    
-    # Si el campo está presente, devolver su valor
-    return data[field_name]
-
-def extract_from_vapi_request(vapi_request: dict) -> dict:
-    """Extrae arguments directamente del request completo de Vapi"""
-    try:
-        tool_calls = vapi_request["toolCalls"]
-        function_data = tool_calls[0]["function"]
-        arguments_data = function_data["arguments"]
-        
-        if "email" in arguments_data and isinstance(arguments_data["email"], str):
-            email = arguments_data["email"]
-            email_clean = email.strip().lower().replace(" ", "")
-            arguments_data["email"] = email_clean
-            
-        return arguments_data
-        
-    except (KeyError, IndexError, TypeError) as e:
-        logger.warning("Error extracting from Vapi request: %s", str(e))
-        return {}
