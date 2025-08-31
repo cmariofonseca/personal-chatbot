@@ -81,34 +81,47 @@ def extract_arguments_from_request(request: dict) -> dict:
     if not isinstance(request, dict):
         return {}
     
-    # 1. Estructura con toolCalls
-    if "toolCalls" in request:
+    # 1. PRIORIDAD: Estructura REAL de Vapi (según logs)
+    if "toolCalls" in request and request["toolCalls"]:
         return extract_from_tool_calls(request["toolCalls"])
     
-    # 2. Estructura con arguments directos
+    # 2. Alternativa: toolCallList (por si acaso)
+    if "toolCallList" in request and request["toolCallList"]:
+        return extract_from_tool_calls(request["toolCallList"])
+    
+    # 3. Estructura con arguments directos (backup)
     if "arguments" in request:
         return extract_from_arguments(request["arguments"])
     
-    # 3. Estructura con message
-    if "message" in request:
-        return extract_from_message(request["message"])
-    
     # 4. Ya viene con los campos necesarios
-    if "question" in request:
+    if "question" in request or "email" in request:
         return request
     
     return {}
 
 def extract_from_tool_calls(tool_calls: list) -> dict:
-    """Extrae arguments de toolCalls"""
+    """Extrae arguments de toolCalls de Vapi"""
     if not tool_calls or not isinstance(tool_calls, list):
         return {}
     
+    # Tomar el primer tool call
     tool_call = tool_calls[0]
-    if isinstance(tool_call, dict) and "function" in tool_call:
-        function_data = tool_call["function"]
-        if isinstance(function_data, dict) and "arguments" in function_data:
-            return parse_json_arguments(function_data["arguments"])
+    
+    # Estructura esperada de Vapi:
+    # toolCall = {
+    #     "function": {
+    #         "name": "record_user_details", 
+    #         "arguments": "{\"email\": \"test@example.com\"}"
+    #     }
+    # }
+    
+    if (isinstance(tool_call, dict) and 
+        "function" in tool_call and 
+        isinstance(tool_call["function"], dict) and
+        "arguments" in tool_call["function"]):
+        
+        arguments_data = tool_call["function"]["arguments"]
+        return parse_json_arguments(arguments_data)
     
     return {}
 
