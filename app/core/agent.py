@@ -56,7 +56,6 @@ class Me:
     # Registra detalles de usuarios interesados y envía notificación
     def _record_user_details(self, email: str, name: str = "Nombre no indicado", notes: str = "no proporcionadas") -> Dict:
         msg = f"Registrando {name} con email {email} y notas {notes}"
-        logger.warning(msg)
         try:
             push_notification(msg)
             return {"recorded": "ok"}
@@ -67,7 +66,6 @@ class Me:
     # Registra preguntas no respondidas y envía notificación
     def _record_unknown_question(self, question: str) -> Dict:
         msg = f"Registrando pregunta no respondida: {question}"
-        logger.warning(msg)
         try:
             push_notification(msg)
             return {"recorded": "ok"}
