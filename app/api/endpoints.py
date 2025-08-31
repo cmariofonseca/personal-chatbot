@@ -37,19 +37,23 @@ async def record_user_details_endpoint(request: dict):
     # logger.warning("request received in record_user_details_endpoint: %s", json.dumps(request, indent=2, default=str))
 
     try:
-        # Extraer directamente del structure de Vapi
         tool_calls = request.get("message", {}).get("toolCalls", [])
         
         if not tool_calls:
             raise HTTPException(status_code=400, detail="No toolCalls found in request")
-        
-        # Obtener los arguments del primer tool call
+
         first_tool_call = tool_calls[0]
         arguments_data = first_tool_call.get("function", {}).get("arguments", {})
         
+        if (isinstance(arguments_data, dict) and 
+            "email" in arguments_data and 
+            isinstance(arguments_data["email"], str)):
+            
+            email = arguments_data["email"]
+            arguments_data["email"] = email.strip().lower().replace(" ", "")
+        
         logger.warning("Arguments data extracted: %s", arguments_data)
 
-        # Crear el modelo con los arguments extraídos
         request_model = UserDetailsRequest(**arguments_data)
 
         result = agent._record_user_details(
@@ -72,19 +76,16 @@ async def record_unknown_question_endpoint(request: dict):
     # logger.warning("request received in record_unknown_question_endpoint: %s", json.dumps(request, indent=2, default=str))
     
     try:
-        # Extraer directamente del structure de Vapi
         tool_calls = request.get("message", {}).get("toolCalls", [])
         
         if not tool_calls:
             raise HTTPException(status_code=400, detail="No toolCalls found in request")
-        
-        # Obtener los arguments del primer tool call
+
         first_tool_call = tool_calls[0]
         arguments_data = first_tool_call.get("function", {}).get("arguments", {})
         
         logger.warning("Arguments data extracted: %s", arguments_data)
 
-        # Crear el modelo con los arguments extraídos
         request_model = UnknownQuestionRequest(**arguments_data)
 
         result = agent._record_unknown_question(
@@ -99,3 +100,29 @@ async def record_unknown_question_endpoint(request: dict):
             status_code=500,
             detail=f"Error registrando pregunta: {str(e)}"
         )
+
+# Diccionario recibido desde Vapi
+""" {
+  "message": {
+    "timestamp": 1756661121974,
+    "type": "tool-calls",
+    "toolCalls": [
+      {
+        "id": "call_7SVi7lI1KRxWoQPLI9zs1klQ",
+        "type": "function",
+        "function": {
+          "name": "record_user_details",
+          "arguments": {
+            "name": "Alberto Ruiz",
+            "email": "AlbertoRuiz@gmail.com"
+          }
+        }
+      }
+    ],
+  "toolCallList": [],
+  "toolWithToolCallList": [],
+  "artifact": {},
+  "call": {},
+  "assistant": {}
+  }
+} """
