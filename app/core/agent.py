@@ -56,7 +56,7 @@ class Me:
     # Registra detalles de usuarios interesados y envía notificación
     def _record_user_details(self, email: str, name: str = "Nombre no indicado", notes: str = "no proporcionadas") -> Dict:
         msg = f"Registrando {name} con email {email} y notas {notes}"
-        logger.info(msg)
+        logger.warning(msg)
         try:
             push_notification(msg)
             return {"recorded": "ok"}
@@ -67,7 +67,7 @@ class Me:
     # Registra preguntas no respondidas y envía notificación
     def _record_unknown_question(self, question: str) -> Dict:
         msg = f"Registrando pregunta no respondida: {question}"
-        logger.info(msg)
+        logger.warning(msg)
         try:
             push_notification(msg)
             return {"recorded": "ok"}
@@ -88,7 +88,7 @@ class Me:
             "- Mantén las respuestas **breves (2-4 oraciones máximo)**.\n"
             "- Sé **profesional pero accesible**.\n"
             "- Usa **ejemplos concretos de proyectos** cuando sea relevante.\n"
-            "- Si no conoces la respuesta, activa la acción: `record_unknown_question`.\n"
+            "- Si la pregunta **no puede responderse con la información disponible sobre Carlos Fonseca** (experiencia, habilidades, proyectos), activa la acción: `record_unknown_question`.\n"
             "- Si el usuario muestra interés, invítalo a dejar sus datos y activa: `record_user_details`.\n\n"
             "---\n\n"
             "## Flujo de Conversación\n\n"
@@ -104,7 +104,7 @@ class Me:
             "\"¿Le gustaría que me ponga en contacto con usted para más detalles?\"\n\n"
             "---\n\n"
             "## Conocimiento Integrado\n\n"
-            "### Información Personal Pública\n"
+            "### Información Personal\n"
             "- **Nombre:** Carlos Fonseca\n"
             "- **Profesión:** Software Developer\n"
             "- **Perfil profesional:** Desarrollador de software con experiencia en Angular, React, Next, Vue e Ionic. "
@@ -112,10 +112,6 @@ class Me:
             "internacionales para sectores como banca, salud y seguros. Comprometido con la calidad, el trabajo en "
             "equipo y la entrega de soluciones escalables.\n"
             "- **Residencia:** Medellín, Antioquia, Colombia\n"
-            "- **Teléfono:** +57 304 547 2931\n"
-            "- **Correo:** carlosfonseca9688@gmail.com\n"
-            "- **LinkedIn:** linkedin.com/in/carlosfonsecadev\n"
-            "- **Sitio web:** carlosfonseca.dev\n\n"
             "### Experiencia Profesional\n"
             "- **Ingeniero de Sistemas** – Universidad de Antioquia\n"
             "- **+10 años de experiencia** en desarrollo de software fullstack\n"
