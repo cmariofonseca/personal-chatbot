@@ -1,6 +1,6 @@
 from app.core.agent import Me
 from app.core.models import ChatRequest, ChatResponse
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import Optional
 import json
@@ -33,7 +33,7 @@ async def chat_endpoint(request: ChatRequest):
         )
 
 @router.post("/record_user_details")
-async def record_user_details_endpoint(request: Request):
+async def record_user_details_endpoint(request: dict):
     logger.warning("request received in record_user_details_endpoint: %s", json.dumps(request, indent=2, default=str))
 
     try:
@@ -65,7 +65,7 @@ async def record_user_details_endpoint(request: Request):
         )
 
 @router.post("/record_unknown_question")
-async def record_unknown_question_endpoint(request: Request):
+async def record_unknown_question_endpoint(request: dict):
     logger.warning("request received in record_unknown_question_endpoint: %s", json.dumps(request, indent=2, default=str))
     
     try:
